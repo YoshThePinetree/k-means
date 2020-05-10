@@ -5,7 +5,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.StringTokenizer;
 
@@ -32,30 +31,43 @@ public class KM {
 		double Xctrarc [][][] = new double [maxtry][c][d];	// Archive for cluster center
 
 		// data normalization
-		double data[][] = new double[c][n];
+		double data[][] = new double[n][d];
 //		data=NormStd.Normalization(data1);
 		data=NormStd.Standardization(data1);
 
 
 		Sfmt rnd = new Sfmt(rseed);
 		//
-		double U [][] = new double [n][c];	// the membership function
+		int U [] = new int [n];		// the cluster belonging vector
 		double Xctr [][] = new double [c][d];	// the coordinate of cluster center
 
 
-		///////////////////
-//******// FCM Main Loop //********************************************************
-		///////////////////
-		for(int trial=0; trial<maxtry; trial++) {
+		///////////////////////
+//******// k-Means Main Loop //********************************************************
+		///////////////////////
+		//for(int trial=0; trial<maxtry; trial++) {
 			for(int i=0; i<n; i++) {
-				for(int j=0; j<c; j++) {
-					U[i][j] = rnd.NextUnif();	// initiation by random number
-				}
-			}
-			for(int i=0; i<c; i++) {
-				Arrays.fill(Xctr[i],0);
+				U[i] = rnd.NextInt(c);	// initiation of random number
+				//System.out.println(U[i]);
 			}
 
+			//for(int ite=0; ite<maxite; ite++) {
+				Xctr = CalcCtr(U,data,c);					// the cluster center update
+				U = MembershipUpdate(data,Xctr,dist);
+				double f = CalcObjFunc(U,data,Xctr,dist);	// Objective function update
+
+				System.out.println(f);
+
+				//F[ite][trial] = CalcObjFunc(U,data,Xctr,dist);	// Objective function update
+				//System.out.printf("Iteration: \t");
+				//System.out.printf("%d - %d\t",trial+1,ite+1);
+				//System.out.printf("OF Value: \t");
+				//System.out.printf("%.3f\n",F[ite][trial]);
+
+			//}
+
+
+			/*
 			for(int ite=0; ite<maxite; ite++) {
 				Xctr = CalcCtr(U,data,q);					// the cluster center update
 				U = CalcMembership(data,Xctr,q,dist);		// the membership degree updata
@@ -79,11 +91,13 @@ public class KM {
 					Xctrarc[trial][i][j]=Xctr[i][j];
 				}
 			}
-		}
+			*/
+		//}
 
 //*********************************************************************************
 
 		// Extraction of the best data
+		/*
 		double Flast [] = new double [maxtry];
 		for(int i=0; i<maxtry; i++) {
 			Flast[i] = F[maxite-1][i];
@@ -104,7 +118,7 @@ public class KM {
 		DataWrite(Xfile,data);
 		String Xctrfile = "C:\\JavaIO\\Output\\Xctr.txt";
 		DataWrite(Xctrfile,Xctrarc[Find]);
-
+		*/
 	}
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -204,66 +218,64 @@ public class KM {
     }
 
     // cluster centroid calculation method
-    private static double [][] CalcCtr(double U[][], double X[][], double q){
+    private static double [][] CalcCtr(int U[], double X[][], int c){
     	int n = X.length;		// the number of elements
        	int d = X[0].length;	// the number of dementions
-    	int c = U[0].length;	// the number of clusters
     	double ctr [][] = new double [c][d];	// the cluster center
-    	double nsum [] = new double[d];
-    	double dsum [] = new double[d];
+    	StatCalcMat mat = new StatCalcMat();
 
-		for(int i=0; i<c; i++) {	    // loop for cluster
-    		Arrays.fill(nsum,0);
-    		Arrays.fill(dsum,0);
+    	for(int i=0; i<d; i++) {	    // loop for dimension
+    		for(int j=0; j<c; j++) {	// loop for cluster
+        		List<Double> list = new ArrayList<Double>();
+        		for(int k=0; k<n; k++) {	// loop for element
+        			if(U[k]==j) {
+        				list.add(X[k][i]);
 
-			for(int j=0; j<n; j++) {	// loop for element
-				for(int k=0; k<d; k++) {	    // loop for demension
-					dsum[k] = dsum[k] + Math.pow(U[j][i], q);
-					nsum[k] = nsum[k] + (Math.pow(U[j][i], q)*X[j][k]);
-				}
-			}
-			for(int k=0; k<d; k++) {	    // loop for demension
-				ctr[i][k] = nsum[k]/dsum[k];
-			}
-		}
-
+        			}
+        		}
+        		Double [] array = list.toArray(new Double[list.size()]);
+        		double [] meanvec = new double [array.length];
+        		for(int k=0; k<array.length; k++) {
+        			meanvec[k] = array[k];
+        		}
+        		ctr[j][i] = mat.MeanVecDouble(meanvec);
+    		}
+    	}
     	return ctr;
-
     }
 
-    private static double [][] CalcMembership(double X[][], double ctr[][], double q, String dist){
+    private static int [] MembershipUpdate(double X[][], double ctr[][], String dist) {
     	int n = X.length;		// the number of elements
-//    	int d = X[0].length;	// the number of dementions
-    	int c = ctr.length;	// the number of clusters
-    	double U [][] = new double [n][c];	// the membership function
-    	double sum, num, den;
+    	int c = ctr.length;		// the cluster center
+    	int [] U = new int [n];	// new cluster membership
+    	double a;
 
     	for(int i=0; i<n; i++) {
-    		for(int j=0; j<c; j++) {
-    			sum=0;
-    			for(int k=0; k<c; k++) {
-    				num = Dist2Points(X[i],ctr[j],dist);
-    				den = Dist2Points(X[i],ctr[k],dist);
-    				sum = sum + Math.pow(num/den,1/(q-1));
-    			}
-        		U[i][j] = Math.pow(sum,-1);
+    		double amin = 99999999;
+    		int ind = 0;
+        	for(int j=0; j<c; j++) {
+        		a = Dist2Points(X[i], ctr[j], dist);
+        		if(a < amin) {
+        			amin = a;
+        			ind = j;
+        		}
         	}
-     	}
+        	U[i] = ind;
+    	}
 
     	return U;
     }
 
-    private static double CalcObjFunc(double U[][], double X[][], double ctr[][], double q, String dist) {
-    	double F=0, sum=0;
-		int n=U.length;			// the number of elements
-		int c=U[0].length;		// the number of clusters
+    private static double CalcObjFunc(int U[], double X[][], double ctr[][], String dist) {
+    	double F=0;
+		int n=X.length;			// the number of elements
+		int c=ctr.length;		// the number of clusters
 
 		for(int i = 0; i<n; i++) {
 			for(int j = 0; j<c; j++) {
-				sum = sum + (Math.pow(U[i][j],q)*(Dist2Points(X[i],ctr[j],dist)));
+				F = F + Dist2Points(X[i],ctr[j],dist);
 			}
 		}
-		F = sum;
 
     	return F;
     }
