@@ -21,13 +21,12 @@ public class KM {
 		///////////////////////////////
 		int c=2;											// the number of clusters
 		int n=data1.length;									// the number of elements
-		int maxtry=20;										// the number of maximum trials
-		int maxite=300;										// the number of maximum iteration
-		double q=1.4;										// the fuzzifier parameter
+		int maxtry=5;										// the number of maximum trials
+		int maxite=100;										// the number of maximum iteration
 		int rseed=1;										// random seed
 		String dist="Euclid";								// the distance metric type
 		double F [][] = new double [maxite][maxtry];		// Objective function value
-		double Uarc [][][] = new double [maxtry][n][c];		// Archive for membership
+		double Uarc [][] = new double [maxtry][n];		// Archive for membership
 		double Xctrarc [][][] = new double [maxtry][c][d];	// Archive for cluster center
 
 		// data normalization
@@ -45,59 +44,40 @@ public class KM {
 		///////////////////////
 //******// k-Means Main Loop //********************************************************
 		///////////////////////
-		//for(int trial=0; trial<maxtry; trial++) {
+		for(int trial=0; trial<maxtry; trial++) {
 			for(int i=0; i<n; i++) {
 				U[i] = rnd.NextInt(c);	// initiation of random number
 				//System.out.println(U[i]);
 			}
 
-			//for(int ite=0; ite<maxite; ite++) {
+			for(int ite=0; ite<maxite; ite++) {
 				Xctr = CalcCtr(U,data,c);					// the cluster center update
 				U = MembershipUpdate(data,Xctr,dist);
 				double f = CalcObjFunc(U,data,Xctr,dist);	// Objective function update
 
-				System.out.println(f);
-
-				//F[ite][trial] = CalcObjFunc(U,data,Xctr,dist);	// Objective function update
-				//System.out.printf("Iteration: \t");
-				//System.out.printf("%d - %d\t",trial+1,ite+1);
-				//System.out.printf("OF Value: \t");
-				//System.out.printf("%.3f\n",F[ite][trial]);
-
-			//}
-
-
-			/*
-			for(int ite=0; ite<maxite; ite++) {
-				Xctr = CalcCtr(U,data,q);					// the cluster center update
-				U = CalcMembership(data,Xctr,q,dist);		// the membership degree updata
-				F[ite][trial] = CalcObjFunc(U,data,Xctr,q,dist);	// Objective function update
-
+				F[ite][trial] = f;	// Objective function update
 				System.out.printf("Iteration: \t");
 				System.out.printf("%d - %d\t",trial+1,ite+1);
 				System.out.printf("OF Value: \t");
 				System.out.printf("%.3f\n",F[ite][trial]);
-
 			}
 
 			// Data preservation for the archives
 			for(int i=0; i<n; i++) {
-				for(int j=0; j<c; j++) {
-					Uarc[trial][i][j]=U[i][j];
-				}
+				Uarc[trial][i]=U[i];
 			}
 			for(int i=0; i<c; i++) {
 				for(int j=0; j<d; j++) {
 					Xctrarc[trial][i][j]=Xctr[i][j];
 				}
 			}
-			*/
-		//}
+
+		}
 
 //*********************************************************************************
 
 		// Extraction of the best data
-		/*
+
 		double Flast [] = new double [maxtry];
 		for(int i=0; i<maxtry; i++) {
 			Flast[i] = F[maxite-1][i];
@@ -112,13 +92,13 @@ public class KM {
 		}
 
 		// Data output
-		String Ufile = "C:\\JavaIO\\Output\\U.txt";
-		DataWrite(Ufile,Uarc[Find]);
-		String Xfile = "C:\\JavaIO\\Output\\X.txt";
+		String Ufile = "C:\\JavaIO\\Output\\kM\\U.txt";
+		DataWriteVec(Ufile,Uarc[Find]);
+		String Xfile = "C:\\JavaIO\\Output\\kM\\X.txt";
 		DataWrite(Xfile,data);
-		String Xctrfile = "C:\\JavaIO\\Output\\Xctr.txt";
+		String Xctrfile = "C:\\JavaIO\\Output\\kM\\Xctr.txt";
 		DataWrite(Xctrfile,Xctrarc[Find]);
-		*/
+
 	}
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -211,6 +191,20 @@ public class KM {
                 }
             }
 
+            pw.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private static void DataWriteVec(String file_name, double data[]) {
+    	int n = data.length;	// the number of rows
+
+    	try {
+            PrintWriter pw = new PrintWriter(file_name);
+            for(int i=0; i<n; i++) {
+        		pw.format("%.3f\n", data[i]);
+            }
             pw.close();
         } catch (IOException ex) {
             ex.printStackTrace();
