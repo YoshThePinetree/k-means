@@ -11,15 +11,17 @@ import java.util.StringTokenizer;
 ///////////////////////////////////////////////////////////////////////////////////
 public class KM {
 	public void kMeans(){	// FCM algorithm method
-		File file = new File("C:\\JavaIO\\Input\\g2-2-30.txt");	// The file name
+//		File file = new File("C:\\JavaIO\\Input\\g2-2-30.txt");	// The file name
+		File file = new File("C:\\JavaIO\\Input\\xor2.txt");	// The file name
 		int d = 2;	// the number of dimension of the data
-		int data1[][] = DataRead(file,d);	// Load the data
+//		int data1[][] = DataRead(file,d);	// Load the data
+		double data1[][] = DataReadDouble(file,d);	// Load the data
 		System.out.println();
 
 		///////////////////////////////
 		// Paramter Set & Initiation //
 		///////////////////////////////
-		int c=2;											// the number of clusters
+		int c=9;											// the number of clusters
 		int n=data1.length;									// the number of elements
 		int maxtry=5;										// the number of maximum trials
 		int maxite=100;										// the number of maximum iteration
@@ -32,7 +34,8 @@ public class KM {
 		// data normalization
 		double data[][] = new double[n][d];
 //		data=NormStd.Normalization(data1);
-		data=NormStd.Standardization(data1);
+//		data=NormStd.Standardization(data1);
+		data=data1;
 
 
 		Sfmt rnd = new Sfmt(rseed);
@@ -53,7 +56,7 @@ public class KM {
 			for(int ite=0; ite<maxite; ite++) {
 				Xctr = CalcCtr(U,data,c);					// the cluster center update
 				U = MembershipUpdate(data,Xctr,dist);
-				double f = CalcObjFunc(U,data,Xctr,dist);	// Objective function update
+				double f = CalcObjFunc(U,data,Xctr,c,dist);	// Objective function update
 
 				F[ite][trial] = f;	// Objective function update
 				System.out.printf("Iteration: \t");
@@ -175,6 +178,74 @@ public class KM {
         return ans;
     }
 
+    public static double[][] DataReadDouble(final File file, int d) {
+        List<ArrayList<Double>> lists = new ArrayList<ArrayList<Double>>();
+        for (int i = 0; i < d; i++) {
+            lists.add(new ArrayList<Double>());
+        }
+        BufferedReader br = null;
+        try {
+            // Read the file, save data to List<Integer>
+            br = new BufferedReader(new FileReader(file));
+            String line = null;
+            while ((line = br.readLine()) != null) {
+                // Add nth integer to lists[n]
+                List<Double> ints = parse_line_double(line,d);
+                for (int i = 0; i < d; i++) {
+                    (lists.get(i)).add(ints.get(i));
+                }
+            }
+
+            // convert lists to 2 Integer[]
+            Double[] array1 = lists.get(0).toArray(new Double[lists.size()]);
+            int n=array1.length;
+            double data[][] = new double[n][d];
+
+            int j=0;
+            while(j<d) {
+            	// convert lists to 2 Integer[]
+                Double[] array = lists.get(j).toArray(new Double[lists.size()]);
+	            for(int i=0; i<n; i++) {
+	                	data[i][j]=array[i];
+	            }
+
+	            j++;
+            }
+
+            return data;
+
+        } catch (Exception ex) {
+            System.out.println(ex);
+        } finally {
+            try {
+                if (br != null) {
+                    br.close();
+                }
+            } catch (Exception ex) {
+                // ignore error
+            }
+        }
+        return null;
+    }
+
+    // parse 2 integers as a line of String
+    private static List<Double> parse_line_double(String line, int d) throws Exception {
+        List<Double> ans = new ArrayList<Double>();
+        StringTokenizer st = new StringTokenizer(line, " ");
+        if (st.countTokens() != d) {
+            throw new Exception("Bad line: [" + line + "]");
+        }
+        while (st.hasMoreElements()) {
+            String s = st.nextToken();
+            try {
+                ans.add(Double.parseDouble(s));
+            } catch (Exception ex) {
+                throw new Exception("Bad Integer in " + "[" + line + "]. " + ex.getMessage());
+            }
+        }
+        return ans;
+    }
+
     private static void DataWrite(String file_name, double data[][]) {
     	int n = data.length;	// the number of rows
     	int m = data[0].length;	// the number of colmuns
@@ -260,16 +331,19 @@ public class KM {
     	return U;
     }
 
-    private static double CalcObjFunc(int U[], double X[][], double ctr[][], String dist) {
+    private static double CalcObjFunc(int U[], double X[][], double ctr[][], int nc, String dist) {
     	double F=0;
 		int n=X.length;			// the number of elements
 		int c=ctr.length;		// the number of clusters
 
-		for(int i = 0; i<n; i++) {
-			for(int j = 0; j<c; j++) {
-				F = F + Dist2Points(X[i],ctr[j],dist);
+		for(int k = 0; k<nc; k++) {
+			for(int i = 0; i<n; i++) {
+				if(U[i]==k) {
+					F = F + Dist2Points(X[i],ctr[k],dist);
+				}
 			}
 		}
+
 
     	return F;
     }
@@ -360,6 +434,24 @@ public class KM {
 		}
 		return D;
 	}
+
+    private void ShowMatDouble(double X[][]) {
+    	for(int i=0; i<X.length; i++) {
+			for(int j=0; j<X[0].length; j++) {
+				if(j==X[0].length-1) {
+					System.out.printf("%.3f\n",X[i][j]);
+				}else {
+					System.out.printf("%.3f ",X[i][j]);
+				}
+			}
+		}
+    }
+
+    private void ShowVecInt(int X[]) {
+    	for(int i=0; i<X.length; i++) {
+			System.out.printf("%d\n",X[i]);
+		}
+    }
 
 //*********************************************************************************
 
